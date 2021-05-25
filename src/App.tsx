@@ -1,16 +1,22 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
-import "./App.css";
+import "./App.scss";
 
 import Chess from "chess.js";
 import Chessground from "@react-chess/chessground";
 import * as cg from "chessground/types";
 import logo from "./logo.svg";
-import { cleanPGN, plysToPGN, pgnToPlys, plysToMoves } from "./utils";
+import {
+  cleanPGN,
+  plysToPGN,
+  pgnToPlys,
+  plysToMoves,
+  getResult,
+} from "./utils";
 
 // Awful blitz game played by me
 const DEFAULT_PGN =
-  "1. e4 { [%clk 0:03:00] } 1... b6 { [%clk 0:03:00] } 2. d4 { [%clk 0:02:58] } 2... Ba6 { [%clk 0:03:00] } 3. Bxa6 { [%clk 0:02:56] } 3... Nxa6 { [%clk 0:02:59] } 4. Qd3 { [%clk 0:02:55] } 4... Qc8 { [%clk 0:02:59] } 5. Nc3 { [%clk 0:02:53] } 5... Qb7 { [%clk 0:02:59] } 6. Nf3 { [%clk 0:02:51] } 6... e6 { [%clk 0:02:58] } 7. Bf4 { [%clk 0:02:50] } 7... Bb4 { [%clk 0:02:57] } 8. a3 { [%clk 0:02:48] } 8... Bxc3+ { [%clk 0:02:55] } 9. bxc3 { [%clk 0:02:48] } 9... Nf6 { [%clk 0:02:53] } 10. e5 { [%clk 0:02:46] } 10... Nd5 { [%clk 0:02:52] } 11. Bd2 { [%clk 0:02:41] } 11... c6 { [%clk 0:02:45] } 12. Ng5 { [%clk 0:02:40] } 12... h6 { [%clk 0:02:42] } 13. Nf3 { [%clk 0:02:35] } 13... O-O { [%clk 0:02:40] } 14. Bxh6 { [%clk 0:02:31] } 14... f5 { [%clk 0:02:36] } 15. Bg5 { [%clk 0:02:19] } 15... Qc8 { [%clk 0:02:29] } 16. O-O { [%clk 0:02:14] } 16... c5 { [%clk 0:02:27] } 17. c4 { [%clk 0:02:03] } 17... Ndc7 { [%clk 0:02:09] } 18. c3 { [%clk 0:01:56] } 18... Qe8 { [%clk 0:02:06] } 19. d5 { [%clk 0:01:51] } 19... Qg6 { [%clk 0:01:53] } 20. d6 { [%clk 0:01:46] } 20... Ne8 { [%clk 0:01:47] } 21. Be7 { [%clk 0:01:45] } 21... Rf7 { [%clk 0:01:46] } 22. Nh4 { [%clk 0:01:42] } 22... Qh6 { [%clk 0:01:40] } 23. Qf3 { [%clk 0:01:30] } 23... g5 { [%clk 0:01:37] } 24. Qxa8 { [%clk 0:01:27] } 24... gxh4 { [%clk 0:01:33] } 25. Qxe8+ { [%clk 0:01:21] } 25... Kg7 { [%clk 0:01:26] } 26. Bf6+ { [%clk 0:01:11] } 26... Kg6 { [%clk 0:01:14] } 27. Qg8+ { [%clk 0:00:58] } 27... Rg7 { [%clk 0:01:10] } 28. Bxg7 { [%clk 0:00:57] } 28... Qxg7 { [%clk 0:01:09] } 29. Qxg7+ { [%clk 0:00:56] } 29... Kxg7 { [%clk 0:01:09] } 30. g3 { [%clk 0:00:54] } 30... Nb8 { [%clk 0:01:08] } 31. gxh4 { [%clk 0:00:53] } 31... Nc6 { [%clk 0:01:06] } 32. Rfe1 { [%clk 0:00:51] } 32... Kg6 { [%clk 0:01:05] } 33. Kh1 { [%clk 0:00:50] } 33... Kh5 { [%clk 0:01:03] } 34. a4 { [%clk 0:00:46] } 34... Kxh4 { [%clk 0:01:02] } 35. Ra2 { [%clk 0:00:43] } 35... Kg4 { [%clk 0:01:01] } 36. Rae2 { [%clk 0:00:41] } 36... Na5 { [%clk 0:00:54] } 37. Rg1+ { [%clk 0:00:38] } 37... Kf4 { [%clk 0:00:48] } 38. h3 { [%clk 0:00:36] } 38... Nxc4 { [%clk 0:00:47] } 39. h4 { [%clk 0:00:35] } 39... Nxe5 { [%clk 0:00:46] } 40. Rxe5 { [%clk 0:00:33] } 40... Kxe5 { [%clk 0:00:44] } 41. h5 { [%clk 0:00:33] } 41... Kxd6 { [%clk 0:00:43] } 42. h6 { [%clk 0:00:33] } 42... e5 { [%clk 0:00:42] } 43. h7 { [%clk 0:00:33] } 43... Kd5 { [%clk 0:00:41] } 44. h8=Q { [%clk 0:00:33] } 44... d6 { [%clk 0:00:40] } 45. Qg8+ { [%clk 0:00:32] } 45... Ke4 { [%clk 0:00:37] } 46. Re1+ { [%clk 0:00:31] } 46... Kf4 { [%clk 0:00:36] } 47. Qc4+ { [%clk 0:00:29] } 47... e4 { [%clk 0:00:35] } 48. f3 { [%clk 0:00:28] } 48... Kxf3 { [%clk 0:00:33] } 49. Rf1+ { [%clk 0:00:27] } 49... Kg4 { [%clk 0:00:31] } 50. Qe2+ { [%clk 0:00:26] } 50... Kg5 { [%clk 0:00:29] } 51. Qe3+ { [%clk 0:00:25] } 51... Kf6 { [%clk 0:00:29] } 52. Qf4 { [%clk 0:00:24] } 52... Ke7 { [%clk 0:00:23] } 53. Rd1 { [%clk 0:00:23] } 53... Kd7 { [%clk 0:00:23] } 54. Qxd6+ { [%clk 0:00:22] } 54... Kc8 { [%clk 0:00:22] } 55. Qe5 { [%clk 0:00:21] } 55... Kb7 { [%clk 0:00:22] } 56. Qxf5 { [%clk 0:00:21] } 56... Ka6 { [%clk 0:00:20] } 57. Qxe4 { [%clk 0:00:20] } 57... Ka5 { [%clk 0:00:19] } 58. Qc4 { [%clk 0:00:19] } 58... a6 { [%clk 0:00:18] } 59. Qe6 { [%clk 0:00:15] } 59... b5 { [%clk 0:00:16] } 60. Ra1 { [%clk 0:00:15] } 60... bxa4 { [%clk 0:00:14] } 61. Qe7 { [%clk 0:00:14] } 61... Kb5 { [%clk 0:00:13] } 62. Qd7+ { [%clk 0:00:13] } 62... Kc4 { [%clk 0:00:12] } 63. Qf7+ { [%clk 0:00:12] } 63... Kxc3 { [%clk 0:00:10] } 64. Rc1+ { [%clk 0:00:11] } 64... Kb4 { [%clk 0:00:10] } 65. Rb1+ { [%clk 0:00:10] } 65... Kc3 { [%clk 0:00:07] } 66. Qf3+ { [%clk 0:00:09] } 66... Kd4 { [%clk 0:00:07] } 67. Qg4+ { [%clk 0:00:09] } 67... Ke5 { [%clk 0:00:07] } 68. Qg3+ { [%clk 0:00:08] } 68... Ke6 { [%clk 0:00:06] } 69. Qg2 { [%clk 0:00:08] } 69... Kd7 { [%clk 0:00:05] } 70. Rd1+ { [%clk 0:00:08] } 70... Kc7 { [%clk 0:00:04] } 71. Qf2 { [%clk 0:00:08] } 71... Kb6 { [%clk 0:00:04] } 72. Qb2+ { [%clk 0:00:08] } 72... Kc6 { [%clk 0:00:03] } 73. Rc1 { [%clk 0:00:08] } 73... c4 { [%clk 0:00:02] } 74. Qd2 { [%clk 0:00:08] } 74... Kc5 { [%clk 0:00:01] } 75. Qc2 { [%clk 0:00:07] } 75... Kb4 { [%clk 0:00:01] } 76. Qxc4+ { 1-0 White wins on time. } { [%clk 0:00:07] } 1-0";
+  "1. e4 e5 2. Nf3 d6 3. Bc4 { C41 Philidor Defense } Bg4 4. h3 Bxf3 5. Qxf3 Qf6 6. Qb3 b6 7. O-O Ne7 8. Nc3 g6 9. Qb5+ c6 10. Qb3 Bg7 11. Be2 O-O 12. d3 Na6 13. Bf3 Nc5 14. Qa3 d5 15. b4 dxe4 16. dxe4 Nd7 17. Bb2 c5 18. bxc5 Nxc5 19. Nd5 Nxd5 20. exd5 a6 21. Rfe1 Qd6 22. Qe3 e4 23. Bxg7 Kxg7 24. Bxe4 Nxe4 25. Qxe4 Rae8 26. Qd4+ f6 27. Rxe8 Rxe8 28. c4 Re2 29. a4 Qe7 30. d6 Qd7 31. Kf1 Re6 32. Rd1 h6 33. c5 bxc5 34. Qxc5 Re5 35. Qc7 Qxc7 36. dxc7 Rc5 37. Rd7+ Kf8 38. Rd8+ Ke7 39. c8=Q Rxc8 40. Rxc8 { Black resigns. } 1-0";
 
 // @ts-ignore
 const chess = new Chess();
@@ -26,6 +32,7 @@ const App: React.FC = () => {
 
   const [lastMove, setLastMove] = useState<cg.Key[]>();
   const [check, setCheck] = useState<cg.Color | boolean>(false);
+  const [result, setResult] = useState<string>("");
 
   const updateCheck = useCallback(() => {
     if (selectedIndex === plys.length - 1) {
@@ -40,6 +47,8 @@ const App: React.FC = () => {
   }, [plys.length, selectedIndex]);
 
   useEffect(() => {
+    const gameResult = getResult(pgn);
+    setResult(gameResult ?? "");
     setplys(pgnToPlys(cleanPGN(pgn)));
     chess.load_pgn(pgn);
     setFen(chess.fen());
@@ -68,12 +77,39 @@ const App: React.FC = () => {
     </div>;
   }
 
-  const moves = useMemo(() => plysToMoves(plys), [plys]);
+  const moves = useMemo(() => plysToMoves([...plys].slice(0, -1)), [plys]);
 
   return (
     <div className="App">
-      <header className="App-header">
-        <div style={{ display: "flex" }}>
+      <div className="App-container">
+        <div style={{ display: "flex", maxHeight: 500 }}>
+          <div className="Submission-Container">
+            <div className="Guess-Container">
+              <h4 style={{ margin: 10 }}>Black</h4>
+              <select>
+                <option>Bot</option>
+                <option>Player</option>
+              </select>
+            </div>
+            <div className="Guess-Container">
+              <h4 style={{ margin: 10 }}>White</h4>
+              <select>
+                <option>Bot</option>
+                <option>Player</option>
+              </select>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                marginTop: "auto",
+              }}
+            >
+              <button className="Secondary-Button">Skip Game</button>
+              <button className="Secondary-Button">View on Lichess</button>
+              <button className="Submit-Button">Submit</button>
+            </div>
+          </div>
           <Chessground
             config={{
               fen,
@@ -86,63 +122,82 @@ const App: React.FC = () => {
             height={500}
             width={500}
           />
-          <div>
+          <div className="Bordered">
             <div
               style={{ height: 500, overflowY: "scroll", overflowX: "hidden" }}
+              className="Plys-Container"
             >
               <div style={{ display: "flex", flexDirection: "column" }}>
-                {moves.map(([whitePly, blackPly], index) => (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      fontSize: 18,
-                    }}
-                  >
-                    <div style={{ margin: 3, width: 35 }}>
-                      <span>{index + 1}</span>
-                    </div>
+                {moves
+                  .map(([whitePly, blackPly], index) => (
                     <div
                       style={{
-                        margin: 3,
-                        width: 60,
-                        justifyContent: "flex-start",
                         display: "flex",
+                        flexDirection: "row",
+                        fontSize: 17,
                       }}
-                      onClick={() => setSelectedIndex(index * 2)}
+                      // eslint-disable-next-line react/no-array-index-key
+                      key={index * 2}
                     >
-                      {whitePly}
+                      <div className="Index-Container">
+                        <span>{index + 1}</span>
+                      </div>
+                      <div
+                        className={`Ply-Container ${
+                          selectedIndex === index * 2 ? "Selected-Ply" : ""
+                        }`}
+                        onClick={() => setSelectedIndex(index * 2)}
+                      >
+                        {whitePly}
+                      </div>
+                      {blackPly && (
+                        <div
+                          className={`Ply-Container ${
+                            selectedIndex === index * 2 + 1
+                              ? "Selected-Ply"
+                              : ""
+                          }`}
+                          // eslint-disable-next-line react/no-array-index-key
+                          key={index * 2 + 1}
+                          onClick={() => setSelectedIndex(index * 2 + 1)}
+                        >
+                          {blackPly}
+                        </div>
+                      )}
                     </div>
-                    <div
-                      style={{
-                        margin: 3,
-                        width: 60,
-                        justifyContent: "flex-start",
-                        display: "flex",
-                      }}
-                      onClick={() => setSelectedIndex(index * 2 + 1)}
-                    >
-                      {blackPly}
-                    </div>
-                  </div>
-                ))}
+                  ))
+                  .concat([
+                    <div className="Result-Container" key="result">
+                      <h5>
+                        {result} {[...plys].pop()}
+                      </h5>
+                    </div>,
+                  ])}
               </div>
             </div>
-            <div>
-              <button onClick={() => setSelectedIndex(0)}>{"<<<"}</button>
+            <div className="Button-Group">
+              <button
+                onClick={() => setSelectedIndex(0)}
+                disabled={!hasPrevious}
+              >
+                &#8249;&#8249;&#8249;
+              </button>
               <button onClick={getPrevious} disabled={!hasPrevious}>
-                {"<"}
+                &#8249;
               </button>
               <button onClick={getNext} disabled={!hasNext}>
-                {">"}
+                &#8250;
               </button>
-              <button onClick={() => setSelectedIndex(plys.length - 2)}>
-                {">>>"}
+              <button
+                onClick={() => setSelectedIndex(plys.length - 2)}
+                disabled={!hasNext}
+              >
+                &#8250;&#8250;&#8250;
               </button>
             </div>
           </div>
         </div>
-      </header>
+      </div>
     </div>
   );
 };

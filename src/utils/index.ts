@@ -4,6 +4,12 @@ export const cleanPGN = (str: string) =>
     .replace(/\s\s+/g, " ")
     .trim();
 
+export const getResult = (str: string) =>
+  str
+    .match(/(\{.*?\})/g)
+    ?.pop()
+    ?.slice(2, -3);
+
 export const pgnToPlys = (str: string) => str.split(" ");
 
 export const plysToPGN = (moves: string[]) =>
