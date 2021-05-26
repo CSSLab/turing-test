@@ -34,6 +34,8 @@ const App: React.FC = () => {
   const [check, setCheck] = useState<cg.Color | boolean>(false);
   const [result, setResult] = useState<string>("");
 
+  const [orientation, setOrientation] = useState<"white" | "black">("white");
+
   const updateCheck = useCallback(() => {
     if (selectedIndex === plys.length - 1) {
       setCheck(false);
@@ -68,6 +70,8 @@ const App: React.FC = () => {
   const hasNext = selectedIndex < plys.length - 2;
   const getPrevious = () => setSelectedIndex(selectedIndex - 1);
   const getNext = () => setSelectedIndex(selectedIndex + 1);
+  const onChangeOrientation = () =>
+    setOrientation(orientation === "white" ? "black" : "white");
 
   if (loading) {
     <div className="App">
@@ -89,6 +93,7 @@ const App: React.FC = () => {
               <select>
                 <option>Bot</option>
                 <option>Player</option>
+                <option>Unknown</option>
               </select>
             </div>
             <div className="Guess-Container">
@@ -96,6 +101,7 @@ const App: React.FC = () => {
               <select>
                 <option>Bot</option>
                 <option>Player</option>
+                <option>Unknown</option>
               </select>
             </div>
             <div
@@ -118,6 +124,7 @@ const App: React.FC = () => {
               check,
               lastMove,
               animation: { duration: 300 },
+              orientation,
             }}
             height={500}
             width={500}
@@ -185,6 +192,7 @@ const App: React.FC = () => {
               <button onClick={getPrevious} disabled={!hasPrevious}>
                 &#8249;
               </button>
+              <button onClick={onChangeOrientation}>&#8635;</button>
               <button onClick={getNext} disabled={!hasNext}>
                 &#8250;
               </button>
