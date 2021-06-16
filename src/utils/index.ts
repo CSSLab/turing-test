@@ -1,3 +1,5 @@
+import React from "react";
+
 export const cleanPGN = (str: string) =>
   str
     .replace(/(\{.*?\})|(\d+\.+)/g, "")
@@ -24,3 +26,15 @@ export const plysToMoves = (plys: string[]) =>
       rows
     );
   }, []);
+
+export const useViewport = () => {
+  const [width, setWidth] = React.useState(window.innerWidth);
+
+  React.useEffect(() => {
+    const handleWindowResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", handleWindowResize);
+    return () => window.removeEventListener("resize", handleWindowResize);
+  }, []);
+
+  return width;
+};
