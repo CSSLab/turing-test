@@ -175,9 +175,13 @@ $screen-md-min: 800px;
 .Guess-Container {
   @extend .Bordered;
   @extend .Shadowed;
-  background-color: $lower-contrast;
+  background-color: rgba($low-contrast, 0.5);
   position: relative;
   width: 200px;
+
+  &:hover {
+    background-color: rgba($low-contrast, 0.7);
+  }
 
   @include mobile {
     width: 95%;
@@ -201,7 +205,14 @@ $screen-md-min: 800px;
       font-size: 12px;
     }
   }
-  margin: 2px;
+}
+
+.Guess-Container-Selected {
+  @extend .Guess-Container;
+  background-color: $lower-contrast;
+  &:hover {
+    background-color: rgba($low-contrast, 0.3);
+  }
 }
 
 .Plys-Container {

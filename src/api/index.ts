@@ -106,10 +106,32 @@ export const authenticateWithLichess = async (
   if (!localStorage.getItem("user_id")) await authenticate(updateAuthStatus);
   await fetch(buildUrl("auth/lichess_authorize"));
 };
+
 export const getGame = async () => {
   const res = await fetch(buildUrl("turing/new_game"), {
     headers: getDefaultHeaders(),
   });
-  // eslint-disable-next-line no-alert
-  alert((await res.json()).moves);
+  const json = await res.json();
+  return json;
+};
+
+export const submitGuess = async (guess: string) => {
+  console.log(
+    JSON.stringify({
+      "game ID": "1234ABCD",
+      white_is_bot: guess === "white",
+      black_is_bot: guess === "black",
+    })
+  );
+  const res = await fetch(buildUrl("turing/game_guess"), {
+    headers: getDefaultHeaders(),
+    method: "POST",
+    body: JSON.stringify({
+      "game ID": "1234ABCD",
+      white_is_bot: guess === "white",
+      black_is_bot: guess === "black",
+    }),
+  });
+
+  console.log(await res.json());
 };

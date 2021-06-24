@@ -17,6 +17,7 @@ import {
   authenticateWithLichess,
   getGame,
   login,
+  submitGuess,
   useAuthStatus,
 } from "./api";
 
@@ -55,6 +56,8 @@ const App: React.FC = () => {
   const [check, setCheck] = useState<cg.Color | boolean>(false);
   const [result, setResult] = useState<string>("");
   const [showModal, setShowModal] = useState<boolean>(!lichessUsername);
+  const [currentGuess, setCurrentGuess] =
+    useState<"black" | "white" | null>(null);
 
   const [orientation, setOrientation] = useState<"white" | "black">("white");
 
@@ -71,8 +74,19 @@ const App: React.FC = () => {
   }, [plys.length, selectedIndex]);
 
   useEffect(() => {
-    const gameResult = getResult(pgn);
-    setResult(gameResult ?? "");
+    if (id)
+      getGame().then((game) => {
+        const { moves, termination, result: gameResult } = game;
+        setPgn(moves);
+        setResult(
+          `${gameResult.replace("_", " ")} by ${
+            termination === "mate" ? "checkmate" : "time"
+          }`
+        );
+      });
+  }, [id]);
+
+  useEffect(() => {
     setplys(pgnToPlys(cleanPGN(pgn)));
     chess.load_pgn(pgn);
     setFen(chess.fen());
@@ -90,8 +104,14 @@ const App: React.FC = () => {
 
   const hasPrevious = selectedIndex >= 0;
   const hasNext = selectedIndex < plys.length - 2;
-  const getPrevious = () => setSelectedIndex(selectedIndex - 1);
-  const getNext = () => setSelectedIndex(selectedIndex + 1);
+  const getPrevious = useCallback(
+    () => (hasPrevious ? setSelectedIndex(selectedIndex - 1) : {}),
+    [hasPrevious, selectedIndex]
+  );
+  const getNext = useCallback(
+    () => (hasNext ? setSelectedIndex(selectedIndex + 1) : {}),
+    [hasNext, selectedIndex]
+  );
   const onChangeOrientation = () =>
     setOrientation(orientation === "white" ? "black" : "white");
 
@@ -104,6 +124,33 @@ const App: React.FC = () => {
       login(updateAuthStatus, id);
     }
   }, [id, updateAuthStatus]);
+
+  useEffect(() => {
+    const onKeyDown = (e: any) => {
+      switch (e.key) {
+        case "Left":
+        case "ArrowLeft":
+          getPrevious();
+          break;
+        case "Right":
+        case "ArrowRight":
+          getNext();
+          break;
+        case "Down":
+        case "ArrowDown":
+          setSelectedIndex(plys.length - 2);
+          break;
+        case "Up":
+        case "ArrowUp":
+          setSelectedIndex(-1);
+          break;
+        default:
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [getNext, getPrevious, plys.length]);
 
   if (loading) {
     return (
@@ -205,9 +252,7 @@ const App: React.FC = () => {
           ))
           .concat([
             <div className="Result-Container" key="result">
-              <h5>
-                {result} {[...plys].pop()}
-              </h5>
+              <h5>{result}</h5>
             </div>,
           ])}
       </div>
@@ -267,21 +312,23 @@ const App: React.FC = () => {
             </div>
             <div className="Mobile-Container">
               <div className="Guess-Group">
-                <div className="Guess-Container">
+                <div
+                  className={`Guess-Container-${
+                    currentGuess === "black" ? "Selected" : ""
+                  }`}
+                  onClick={() => setCurrentGuess("black")}
+                >
                   <h4 style={{ margin: 10 }}>Black</h4>
-                  <select>
-                    <option>Bot</option>
-                    <option>Player</option>
-                    <option>Unknown</option>
-                  </select>
                 </div>
-                <div className="Guess-Container">
+                <div
+                  className={`Guess-Container-${
+                    currentGuess === "white" ? "Selected" : ""
+                  }`}
+                  onClick={() => {
+                    setCurrentGuess("white");
+                  }}
+                >
                   <h4 style={{ margin: 10 }}>White</h4>
-                  <select>
-                    <option>Bot</option>
-                    <option>Player</option>
-                    <option>Unknown</option>
-                  </select>
                 </div>
                 <button className="Secondary-Button">Sign out</button>
                 <button className="Secondary-Button">Skip Game</button>
@@ -336,21 +383,24 @@ const App: React.FC = () => {
         <div className="Container">
           <div className="Submission-Container">
             <div className="Guess-Group">
-              <div className="Guess-Container">
+              Pick the AI:
+              <div
+                className={`Guess-Container${
+                  currentGuess === "black" ? "-Selected" : ""
+                }`}
+                onClick={() => setCurrentGuess("black")}
+              >
                 <h4 style={{ margin: 10 }}>Black</h4>
-                <select>
-                  <option>Bot</option>
-                  <option>Player</option>
-                  <option>Unknown</option>
-                </select>
               </div>
-              <div className="Guess-Container">
+              <div
+                className={`Guess-Container${
+                  currentGuess === "white" ? "-Selected" : ""
+                }`}
+                onClick={() => {
+                  setCurrentGuess("white");
+                }}
+              >
                 <h4 style={{ margin: 10 }}>White</h4>
-                <select>
-                  <option>Bot</option>
-                  <option>Player</option>
-                  <option>Unknown</option>
-                </select>
               </div>
             </div>
 
@@ -382,7 +432,14 @@ const App: React.FC = () => {
               >
                 Authorize with Lichess
               </button>
-              <button className="Submit-Button">Submit</button>
+              <button
+                className="Submit-Button"
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                onClick={() => submitGuess(currentGuess!)}
+                disabled={currentGuess === null}
+              >
+                Submit
+              </button>
             </div>
           </div>
           <div className="Board-Container">
