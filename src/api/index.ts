@@ -21,6 +21,7 @@ export const getDefaultHeaders = () => {
   const headers: { [key: string]: string } = {};
 
   headers.Authorization = getAuthHeader();
+  headers["Content-Type"] = "application/json";
   return headers;
 };
 
@@ -118,7 +119,7 @@ export const getGame = async () => {
 export const submitGuess = async (guess: string) => {
   console.log(
     JSON.stringify({
-      "game ID": "1234ABCD",
+      game_id: "1234ABCD",
       white_is_bot: guess === "white",
       black_is_bot: guess === "black",
     })
@@ -127,7 +128,7 @@ export const submitGuess = async (guess: string) => {
     headers: getDefaultHeaders(),
     method: "POST",
     body: JSON.stringify({
-      "game ID": "1234ABCD",
+      game_id: "1234ABCD",
       white_is_bot: guess === "white",
       black_is_bot: guess === "black",
     }),
