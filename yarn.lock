@@ -1452,10 +1452,10 @@
     schema-utils "^2.6.5"
     source-map "^0.7.3"
 
-"@react-chess/chessground@^1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@react-chess/chessground/-/chessground-1.0.2.tgz#0096dba16cf973d3fc528a9c27246eb83d604e63"
-  integrity sha512-2tHKWX2eXx8gO4+FOJSqT/KCWVQbj34dyuFfiDRJj5rlrNxzFfJIJIB+muBMgnz7E8ImbhUeXBLHtOoy/V6eLw==
+"@react-chess/chessground@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@react-chess/chessground/-/chessground-1.1.0.tgz#19a79cc44cc3cbdf229f7c11ab0f336a26c53c9d"
+  integrity sha512-/beYFNzwfDjJZH+rgLGUV8hCCv5Pc+LUtUawtZXUPiK5pmvQX1CQqG1muyvZFScfptTmxO/OXnGuefVkZ1Izkg==
   dependencies:
     chessground "^7.11.1"
 
