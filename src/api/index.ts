@@ -117,13 +117,6 @@ export const getGame = async () => {
 };
 
 export const submitGuess = async (guess: string) => {
-  console.log(
-    JSON.stringify({
-      game_id: "1234ABCD",
-      white_is_bot: guess === "white",
-      black_is_bot: guess === "black",
-    })
-  );
   const res = await fetch(buildUrl("turing/game_guess"), {
     headers: getDefaultHeaders(),
     method: "POST",

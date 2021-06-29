@@ -22,6 +22,7 @@ import {
 } from "./api";
 
 import "./App.scss";
+import useGameHistory from "./hooks";
 
 const Icon = (
   <svg viewBox="-4 -2 54 54" xmlns="http://www.w3.org/2000/svg" width={37}>
@@ -38,22 +39,26 @@ const Icon = (
 const DEFAULT_PGN =
   "1. e4 e5 2. Nf3 d6 3. Bc4 { C41 Philidor Defense } Bg4 4. h3 Bxf3 5. Qxf3 Qf6 6. Qb3 b6 7. O-O Ne7 8. Nc3 g6 9. Qb5+ c6 10. Qb3 Bg7 11. Be2 O-O 12. d3 Na6 13. Bf3 Nc5 14. Qa3 d5 15. b4 dxe4 16. dxe4 Nd7 17. Bb2 c5 18. bxc5 Nxc5 19. Nd5 Nxd5 20. exd5 a6 21. Rfe1 Qd6 22. Qe3 e4 23. Bxg7 Kxg7 24. Bxe4 Nxe4 25. Qxe4 Rae8 26. Qd4+ f6 27. Rxe8 Rxe8 28. c4 Re2 29. a4 Qe7 30. d6 Qd7 31. Kf1 Re6 32. Rd1 h6 33. c5 bxc5 34. Qxc5 Re5 35. Qc7 Qxc7 36. dxc7 Rc5 37. Rd7+ Kf8 38. Rd8+ Ke7 39. c8=Q Rxc8 40. Rxc8 { Black resigns. } 1-0";
 
-// @ts-ignore
-const chess = new Chess();
-
 const App: React.FC = () => {
   const [{ id, lichessUsername, providedUsername }, updateAuthStatus] =
     useAuthStatus();
   const [loading, setLoading] = useState<boolean>(false);
 
   const [pgn, setPgn] = useState<string>(DEFAULT_PGN);
-  const [fen, setFen] = useState<string>("");
 
-  const [plys, setplys] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
+  const plys = useGameHistory(pgn);
+  const moves = useMemo(() => plysToMoves(plys.map(({ ply }) => ply)), [plys]);
 
-  const [lastMove, setLastMove] = useState<cg.Key[]>();
-  const [check, setCheck] = useState<cg.Color | boolean>(false);
+  const { fen, lastMove, check } =
+    selectedIndex === -1
+      ? {
+          fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          check: false,
+          lastMove: undefined,
+        }
+      : plys[selectedIndex];
+
   const [result, setResult] = useState<string>("");
   const [showModal, setShowModal] = useState<boolean>(!lichessUsername);
   const [currentGuess, setCurrentGuess] =
@@ -61,49 +66,8 @@ const App: React.FC = () => {
 
   const [orientation, setOrientation] = useState<"white" | "black">("white");
 
-  const updateCheck = useCallback(() => {
-    if (selectedIndex === plys.length - 1) {
-      setCheck(false);
-      return;
-    }
-    let checkStatus: cg.Color | boolean = false;
-    if (chess.in_check()) {
-      checkStatus = selectedIndex % 2 ? "white" : "black";
-    }
-    setCheck(checkStatus);
-  }, [plys.length, selectedIndex]);
-
-  useEffect(() => {
-    if (id)
-      getGame().then((game) => {
-        const { moves, termination, result: gameResult } = game;
-        setPgn(moves);
-        setResult(
-          `${gameResult.replace("_", " ")} by ${
-            termination === "mate" ? "checkmate" : "time"
-          }`
-        );
-      });
-  }, [id]);
-
-  useEffect(() => {
-    setplys(pgnToPlys(cleanPGN(pgn)));
-    chess.load_pgn(pgn);
-    setFen(chess.fen());
-  }, [pgn, updateCheck]);
-
-  useEffect(() => {
-    chess.load_pgn(plysToPGN(plys.slice(0, selectedIndex + 1)));
-    setFen(chess.fen());
-    updateCheck();
-    const newLastMove = chess.undo();
-    if (newLastMove) {
-      setLastMove([newLastMove.from, newLastMove.to]);
-    }
-  }, [selectedIndex, plys, updateCheck]);
-
-  const hasPrevious = selectedIndex >= 0;
-  const hasNext = selectedIndex < plys.length - 2;
+  const hasPrevious = selectedIndex > -1;
+  const hasNext = selectedIndex < plys.length - 1;
   const getPrevious = useCallback(
     () => (hasPrevious ? setSelectedIndex(selectedIndex - 1) : {}),
     [hasPrevious, selectedIndex]
@@ -115,15 +79,29 @@ const App: React.FC = () => {
   const onChangeOrientation = () =>
     setOrientation(orientation === "white" ? "black" : "white");
 
-  const moves = useMemo(() => plysToMoves([...plys].slice(0, -1)), [plys]);
-
   const width = useViewport();
+
+  const fetchGame = useCallback(async () => {
+    setLoading(true);
+    const game = await getGame();
+    const { moves: gamePgn, termination, result: gameResult } = game;
+    setPgn(gamePgn);
+    setResult(
+      `${gameResult.replace("_", " ")} by ${
+        termination === "mate" ? "checkmate" : "time"
+      }`
+    );
+    setSelectedIndex(-1);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     if (id) {
-      login(updateAuthStatus, id);
+      login(updateAuthStatus, id).then(() => {
+        fetchGame();
+      });
     }
-  }, [id, updateAuthStatus]);
+  }, [fetchGame, id, updateAuthStatus]);
 
   useEffect(() => {
     const onKeyDown = (e: any) => {
@@ -138,7 +116,7 @@ const App: React.FC = () => {
           break;
         case "Down":
         case "ArrowDown":
-          setSelectedIndex(plys.length - 2);
+          setSelectedIndex(plys.length - 1);
           break;
         case "Up":
         case "ArrowUp":
@@ -203,7 +181,10 @@ const App: React.FC = () => {
         </button>
         <button
           className="Auth-Button-Muted"
-          onClick={() => authenticate(updateAuthStatus)}
+          onClick={() => {
+            setLoading(true);
+            authenticate(updateAuthStatus);
+          }}
         >
           Continue as Guest
         </button>
@@ -435,7 +416,9 @@ const App: React.FC = () => {
               <button
                 className="Submit-Button"
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                onClick={() => submitGuess(currentGuess!)}
+                onClick={() =>
+                  submitGuess(currentGuess!).then(() => fetchGame())
+                }
                 disabled={currentGuess === null}
               >
                 Submit
@@ -450,11 +433,9 @@ const App: React.FC = () => {
                 highlight: { check: true, lastMove: true },
                 check,
                 lastMove,
-                animation: { duration: 300 },
+                animation: { duration: 150 },
                 orientation,
               }}
-              height={500}
-              width={500}
               contained
             />
           </div>
@@ -462,7 +443,7 @@ const App: React.FC = () => {
             <PlysContainer />
             <div className="Button-Group">
               <button
-                onClick={() => setSelectedIndex(0)}
+                onClick={() => setSelectedIndex(-1)}
                 disabled={!hasPrevious}
               >
                 &#8249;&#8249;&#8249;
@@ -475,7 +456,7 @@ const App: React.FC = () => {
                 &#8250;
               </button>
               <button
-                onClick={() => setSelectedIndex(plys.length - 2)}
+                onClick={() => setSelectedIndex(plys.length - 1)}
                 disabled={!hasNext}
               >
                 &#8250;&#8250;&#8250;
