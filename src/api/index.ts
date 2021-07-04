@@ -116,16 +116,17 @@ export const getGame = async () => {
   return json;
 };
 
-export const submitGuess = async (guess: string) => {
+export const submitGuess = async (guess: string, gameId: string) => {
   const res = await fetch(buildUrl("turing/game_guess"), {
     headers: getDefaultHeaders(),
     method: "POST",
     body: JSON.stringify({
-      game_id: "1234ABCD",
+      game_id: gameId,
       white_is_bot: guess === "white",
       black_is_bot: guess === "black",
     }),
   });
 
-  console.log(await res.json());
+  const json = await res.json();
+  return json;
 };

@@ -1,17 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+/* eslint-disable react/prop-types */
+/* eslint-disable react/no-array-index-key */
+import React, { useEffect, useState } from "react";
 
-import Chess from "chess.js";
 import Chessground from "@react-chess/chessground";
-import * as cg from "chessground/types";
 import logo from "./logo.svg";
-import {
-  cleanPGN,
-  plysToPGN,
-  pgnToPlys,
-  plysToMoves,
-  getResult,
-  useViewport,
-} from "./utils";
+import { useViewport } from "./utils";
 import {
   authenticate,
   authenticateWithLichess,
@@ -22,7 +15,7 @@ import {
 } from "./api";
 
 import "./App.scss";
-import useGameHistory from "./hooks";
+import useGame from "./hooks";
 
 const Icon = (
   <svg viewBox="-4 -2 54 54" xmlns="http://www.w3.org/2000/svg" width={37}>
@@ -35,65 +28,69 @@ const Icon = (
   </svg>
 );
 
-// Awful blitz game played by me
-const DEFAULT_PGN =
-  "1. e4 e5 2. Nf3 d6 3. Bc4 { C41 Philidor Defense } Bg4 4. h3 Bxf3 5. Qxf3 Qf6 6. Qb3 b6 7. O-O Ne7 8. Nc3 g6 9. Qb5+ c6 10. Qb3 Bg7 11. Be2 O-O 12. d3 Na6 13. Bf3 Nc5 14. Qa3 d5 15. b4 dxe4 16. dxe4 Nd7 17. Bb2 c5 18. bxc5 Nxc5 19. Nd5 Nxd5 20. exd5 a6 21. Rfe1 Qd6 22. Qe3 e4 23. Bxg7 Kxg7 24. Bxe4 Nxe4 25. Qxe4 Rae8 26. Qd4+ f6 27. Rxe8 Rxe8 28. c4 Re2 29. a4 Qe7 30. d6 Qd7 31. Kf1 Re6 32. Rd1 h6 33. c5 bxc5 34. Qxc5 Re5 35. Qc7 Qxc7 36. dxc7 Rc5 37. Rd7+ Kf8 38. Rd8+ Ke7 39. c8=Q Rxc8 40. Rxc8 { Black resigns. } 1-0";
+// @ts-nocheck
+const Ply = ({
+  move: [whitePly, blackPly],
+  index,
+  // eslint-disable-next-line react/prop-types
+  setSelectedIndex,
+  selectedIndex,
+}: any) => (
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "row",
+      fontSize: 17,
+    }}
+    key={`move-${index}`}
+  >
+    <div className="Index-Container">
+      <span>{index + 1}</span>
+    </div>
+    {whitePly && (
+      <div
+        className={`Ply-Container ${
+          index * 2 + 1 === selectedIndex ? "Selected-Ply" : ""
+        }`}
+        key={index * 2}
+        onClick={() => setSelectedIndex(index * 2 + 1)}
+      >
+        {whitePly}
+      </div>
+    )}
+    {blackPly && (
+      <div
+        className={`Ply-Container ${
+          index * 2 + 2 === selectedIndex ? "Selected-Ply" : ""
+        }`}
+        key={index * 2 + 1}
+        onClick={() => setSelectedIndex(index * 2 + 2)}
+      >
+        {blackPly}
+      </div>
+    )}
+  </div>
+);
 
 const App: React.FC = () => {
   const [{ id, lichessUsername, providedUsername }, updateAuthStatus] =
     useAuthStatus();
-  const [loading, setLoading] = useState<boolean>(false);
 
-  const [pgn, setPgn] = useState<string>(DEFAULT_PGN);
-
-  const [selectedIndex, setSelectedIndex] = useState<number>(0);
-  const plys = useGameHistory(pgn);
-  const moves = useMemo(() => plysToMoves(plys.map(({ ply }) => ply)), [plys]);
-
-  const { fen, lastMove, check } =
-    selectedIndex === -1
-      ? {
-          fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-          check: false,
-          lastMove: undefined,
-        }
-      : plys[selectedIndex];
-
-  const [result, setResult] = useState<string>("");
   const [showModal, setShowModal] = useState<boolean>(!lichessUsername);
   const [currentGuess, setCurrentGuess] =
     useState<"black" | "white" | null>(null);
 
-  const [orientation, setOrientation] = useState<"white" | "black">("white");
-
-  const hasPrevious = selectedIndex > -1;
-  const hasNext = selectedIndex < plys.length - 1;
-  const getPrevious = useCallback(
-    () => (hasPrevious ? setSelectedIndex(selectedIndex - 1) : {}),
-    [hasPrevious, selectedIndex]
-  );
-  const getNext = useCallback(
-    () => (hasNext ? setSelectedIndex(selectedIndex + 1) : {}),
-    [hasNext, selectedIndex]
-  );
-  const onChangeOrientation = () =>
-    setOrientation(orientation === "white" ? "black" : "white");
+  const [
+    loading,
+    { fen, lastMove, check, orientation, hasPrevious, hasNext, selectedIndex },
+    { moves, result, gameId },
+    [fetchGame, setSelectedIndex],
+    [getFirst, getPrevious, changeOrientation, getNext, getLast],
+  ] = useGame();
 
   const width = useViewport();
 
-  const fetchGame = useCallback(async () => {
-    setLoading(true);
-    const game = await getGame();
-    const { moves: gamePgn, termination, result: gameResult } = game;
-    setPgn(gamePgn);
-    setResult(
-      `${gameResult.replace("_", " ")} by ${
-        termination === "mate" ? "checkmate" : "time"
-      }`
-    );
-    setSelectedIndex(-1);
-    setLoading(false);
-  }, []);
+  const [history, setHistory] = useState<number[]>([1, 1, 1, 0]);
 
   useEffect(() => {
     if (id) {
@@ -116,11 +113,14 @@ const App: React.FC = () => {
           break;
         case "Down":
         case "ArrowDown":
-          setSelectedIndex(plys.length - 1);
+          getLast();
           break;
         case "Up":
         case "ArrowUp":
-          setSelectedIndex(-1);
+          getFirst();
+          break;
+        case "f":
+          changeOrientation();
           break;
         default:
       }
@@ -128,7 +128,7 @@ const App: React.FC = () => {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [getNext, getPrevious, plys.length]);
+  }, [getFirst, getLast, getNext, getPrevious, changeOrientation]);
 
   if (loading) {
     return (
@@ -182,60 +182,11 @@ const App: React.FC = () => {
         <button
           className="Auth-Button-Muted"
           onClick={() => {
-            setLoading(true);
             authenticate(updateAuthStatus);
           }}
         >
           Continue as Guest
         </button>
-      </div>
-    </div>
-  );
-
-  const PlysContainer = () => (
-    <div className="Plys-Container">
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        {moves
-          .map(([whitePly, blackPly], index) => (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                fontSize: 17,
-              }}
-              // eslint-disable-next-line react/no-array-index-key
-              key={index * 2}
-            >
-              <div className="Index-Container">
-                <span>{index + 1}</span>
-              </div>
-              <div
-                className={`Ply-Container ${
-                  selectedIndex === index * 2 ? "Selected-Ply" : ""
-                }`}
-                onClick={() => setSelectedIndex(index * 2)}
-              >
-                {whitePly}
-              </div>
-              {blackPly && (
-                <div
-                  className={`Ply-Container ${
-                    selectedIndex === index * 2 + 1 ? "Selected-Ply" : ""
-                  }`}
-                  // eslint-disable-next-line react/no-array-index-key
-                  key={index * 2 + 1}
-                  onClick={() => setSelectedIndex(index * 2 + 1)}
-                >
-                  {blackPly}
-                </div>
-              )}
-            </div>
-          ))
-          .concat([
-            <div className="Result-Container" key="result">
-              <h5>{result}</h5>
-            </div>,
-          ])}
       </div>
     </div>
   );
@@ -317,7 +268,24 @@ const App: React.FC = () => {
                 <button className="Submit-Button">Submit</button>
               </div>
               <div className="Mobile-Column">
-                <PlysContainer />
+                <div className="Plys-Container">
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    {moves
+                      .map((move: any, index: number) => (
+                        <Ply
+                          move={move}
+                          index={index}
+                          setSelectedIndex={setSelectedIndex}
+                          selected
+                        />
+                      ))
+                      .concat([
+                        <div className="Result-Container" key="result">
+                          <h5>{result}</h5>
+                        </div>,
+                      ])}
+                  </div>
+                </div>
                 <div className="Button-Group">
                   <button
                     onClick={() => setSelectedIndex(0)}
@@ -328,14 +296,11 @@ const App: React.FC = () => {
                   <button onClick={getPrevious} disabled={!hasPrevious}>
                     &#8249;
                   </button>
-                  <button onClick={onChangeOrientation}>&#8635;</button>
+                  <button onClick={changeOrientation}>&#8635;</button>
                   <button onClick={getNext} disabled={!hasNext}>
                     &#8250;
                   </button>
-                  <button
-                    onClick={() => setSelectedIndex(plys.length - 2)}
-                    disabled={!hasNext}
-                  >
+                  <button onClick={getLast} disabled={!hasNext}>
                     &#8250;&#8250;&#8250;
                   </button>
                 </div>
@@ -384,7 +349,15 @@ const App: React.FC = () => {
                 <h4 style={{ margin: 10 }}>White</h4>
               </div>
             </div>
-
+            <div className="Guess-Container">
+              <h1>
+                {`${(
+                  (history.filter((val) => val).length / history.length) *
+                  100
+                ).toFixed(2)}
+                %`}
+              </h1>
+            </div>
             <div
               style={{
                 display: "flex",
@@ -392,15 +365,6 @@ const App: React.FC = () => {
                 marginTop: "auto",
               }}
             >
-              <button className="Secondary-Button" onClick={() => getGame()}>
-                Get Game [Debug]
-              </button>
-              <button
-                className="Secondary-Button"
-                onClick={() => setShowModal(true)}
-              >
-                Show Modal [Debug]
-              </button>
               <button
                 className="Secondary-Button"
                 onClick={() => updateAuthStatus()}
@@ -415,9 +379,14 @@ const App: React.FC = () => {
               </button>
               <button
                 className="Submit-Button"
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 onClick={() =>
-                  submitGuess(currentGuess!).then(() => fetchGame())
+                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  submitGuess(currentGuess!, gameId).then((res) => {
+                    const { guess_is_correct: correct } = res;
+                    setHistory([...history, correct ? 1 : 0]);
+                    setCurrentGuess(null);
+                    fetchGame();
+                  })
                 }
                 disabled={currentGuess === null}
               >
@@ -440,35 +409,45 @@ const App: React.FC = () => {
             />
           </div>
           <div className="Bordered">
-            <PlysContainer />
+            <div className="Plys-Container">
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {moves
+                  .map((move: any, index: number) => (
+                    <Ply
+                      move={move}
+                      index={index}
+                      setSelectedIndex={setSelectedIndex}
+                      selectedIndex={selectedIndex}
+                    />
+                  ))
+                  .concat([
+                    <div className="Result-Container" key="result">
+                      <h5>{result}</h5>
+                    </div>,
+                  ])}
+              </div>
+            </div>
             <div className="Button-Group">
-              <button
-                onClick={() => setSelectedIndex(-1)}
-                disabled={!hasPrevious}
-              >
+              <button onClick={getFirst} disabled={!hasPrevious}>
                 &#8249;&#8249;&#8249;
               </button>
               <button onClick={getPrevious} disabled={!hasPrevious}>
                 &#8249;
               </button>
-              <button onClick={onChangeOrientation}>&#8635;</button>
+              <button onClick={changeOrientation}>&#8635;</button>
               <button onClick={getNext} disabled={!hasNext}>
                 &#8250;
               </button>
-              <button
-                onClick={() => setSelectedIndex(plys.length - 1)}
-                disabled={!hasNext}
-              >
+              <button onClick={getLast} disabled={!hasNext}>
                 &#8250;&#8250;&#8250;
               </button>
             </div>
           </div>
         </div>
         <div className="History-Container">
-          <span className="Unknown">?</span>
-          <span className="Unknown">?</span>
-          <span className="Unknown">?</span>
-          <span className="Unknown">?</span>
+          {history.slice(-10).map((v, i) => (
+            <span key={i} className={v ? "Correct" : "Incorrect"} />
+          ))}
         </div>
       </div>
     </div>
