@@ -261,16 +261,13 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 <div className="Button-Group">
-                  <button
-                    onClick={() => setSelectedIndex(0)}
-                    disabled={!hasPrevious}
-                  >
+                  <button onClick={changeOrientation}>&#8635;</button>
+                  <button onClick={() => getFirst} disabled={!hasPrevious}>
                     &#8249;&#8249;&#8249;
                   </button>
                   <button onClick={getPrevious} disabled={!hasPrevious}>
                     &#8249;
                   </button>
-                  <button onClick={changeOrientation}>&#8635;</button>
                   <button onClick={getNext} disabled={!hasNext}>
                     &#8250;
                   </button>
@@ -402,13 +399,13 @@ const App: React.FC = () => {
               </div>
             </div>
             <div className="Button-Group">
+              <button onClick={changeOrientation}>&#8635;</button>
               <button onClick={getFirst} disabled={!hasPrevious}>
                 &#8249;&#8249;&#8249;
               </button>
               <button onClick={getPrevious} disabled={!hasPrevious}>
                 &#8249;
               </button>
-              <button onClick={changeOrientation}>&#8635;</button>
               <button onClick={getNext} disabled={!hasNext}>
                 &#8250;
               </button>
