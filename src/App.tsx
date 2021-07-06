@@ -90,7 +90,7 @@ const App: React.FC = () => {
 
   const width = useViewport();
 
-  const [history, setHistory] = useState<number[]>([1, 1, 1, 0]);
+  const [history, setHistory] = useState<number[]>([]);
 
   useEffect(() => {
     if (id) {
@@ -353,7 +353,7 @@ const App: React.FC = () => {
                 onClick={() =>
                   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                   submitGuess(currentGuess!, gameId).then((res) => {
-                    const { guess_is_correct: correct } = res;
+                    const { guess_correct: correct } = res;
                     setHistory([...history, correct ? 1 : 0]);
                     setCurrentGuess(null);
                     fetchGame();
