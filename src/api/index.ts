@@ -104,8 +104,11 @@ export const login = async (
 export const authenticateWithLichess = async (
   updateAuthStatus: UpdateAuthStatus
 ) => {
-  if (!localStorage.getItem("user_id")) await authenticate(updateAuthStatus);
-  await fetch(buildUrl("auth/lichess_authorize"));
+  if (!localStorage.getItem("user_id") || !getEncodedAccessToken())
+    await authenticate(updateAuthStatus);
+  window.location.assign(
+    buildUrl(`auth/lichess_login/${getEncodedAccessToken()}`)
+  );
 };
 
 export const getGame = async () => {
