@@ -5,7 +5,7 @@ import { getGame } from "../api";
 // @ts-ignore
 
 const useGame = (): any => {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const [gameId, setGameId] = useState<string>("");
 
