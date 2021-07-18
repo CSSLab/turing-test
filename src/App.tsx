@@ -28,6 +28,18 @@ const Icon = (
   </svg>
 );
 
+const FlipIcon = (
+  <svg
+    fill="white"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="1 1 22 22"
+    width="14px"
+    height="14px"
+  >
+    <path d="M 7.1601562 3 L 8.7617188 5 L 18 5 C 18.551 5 19 5.448 19 6 L 19 15 L 16 15 L 20 20 L 24 15 L 21 15 L 21 6 C 21 4.346 19.654 3 18 3 L 7.1601562 3 z M 4 4 L 0 9 L 3 9 L 3 18 C 3 19.654 4.346 21 6 21 L 16.839844 21 L 15.238281 19 L 6 19 C 5.449 19 5 18.552 5 18 L 5 9 L 8 9 L 4 4 z" />
+  </svg>
+);
+
 // @ts-nocheck
 const Ply = ({
   move: [whitePly, blackPly],
@@ -79,13 +91,13 @@ const App: React.FC = () => {
   const [showModal, setShowModal] = useState<boolean>(!lichessUsername);
   const [currentGuess, setCurrentGuess] =
     useState<"black" | "white" | null>(null);
-
   const [
     loading,
     { fen, lastMove, check, orientation, hasPrevious, hasNext, selectedIndex },
     { moves, result, gameId },
     [fetchGame, setSelectedIndex],
     [getFirst, getPrevious, changeOrientation, getNext, getLast],
+    [logEvent],
   ] = useGame();
 
   const width = useViewport();
@@ -261,7 +273,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 <div className="Button-Group">
-                  <button onClick={changeOrientation}>&#8635;</button>
+                  <button onClick={changeOrientation}>{FlipIcon}</button>
                   <button onClick={() => getFirst} disabled={!hasPrevious}>
                     &#8249;&#8249;&#8249;
                   </button>
@@ -305,9 +317,13 @@ const App: React.FC = () => {
                 className={`Guess-Container${
                   currentGuess === "black" ? "-Selected" : ""
                 }`}
-                onClick={() => setCurrentGuess("black")}
+                onClick={() => {
+                  setCurrentGuess("black");
+                  if (currentGuess !== null)
+                    logEvent("GUESS_CHANGE", { currentGuess: "black" });
+                }}
               >
-                <h4 style={{ margin: 10 }}>Black</h4>
+                <h5 style={{ margin: 7 }}>Black</h5>
               </div>
               <div
                 className={`Guess-Container${
@@ -315,20 +331,29 @@ const App: React.FC = () => {
                 }`}
                 onClick={() => {
                   setCurrentGuess("white");
+                  if (currentGuess !== null)
+                    logEvent("GUESS_CHANGE", { currentGuess: "white" });
                 }}
               >
-                <h4 style={{ margin: 10 }}>White</h4>
+                <h5 style={{ margin: 7 }}>White</h5>
               </div>
             </div>
-            <div className="Guess-Container">
-              <h1>
-                {`${(
-                  (history.filter((val) => val).length / history.length) *
-                  100
-                ).toFixed(2)}
-                %`}
-              </h1>
-            </div>
+            <button
+              className="Submit-Button"
+              onClick={() =>
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                submitGuess(currentGuess!, gameId).then((res) => {
+                  const { guess_correct: correct } = res;
+                  setHistory([...history, correct ? 1 : 0]);
+                  setCurrentGuess(null);
+                  fetchGame();
+                })
+              }
+              disabled={currentGuess === null}
+            >
+              <h2 style={{ margin: 4 }}>Submit</h2>
+            </button>
+
             <div
               style={{
                 display: "flex",
@@ -336,6 +361,16 @@ const App: React.FC = () => {
                 marginTop: "auto",
               }}
             >
+              <div className="Stats-Container">
+                <h4>
+                  {history.filter((val) => val).length}/{history.length}{" "}
+                  {`${(
+                    (history.length
+                      ? history.filter((val) => val).length / history.length
+                      : 0) * 100
+                  ).toFixed(2)}%`}
+                </h4>
+              </div>
               <button
                 className="Secondary-Button"
                 onClick={() => updateAuthStatus()}
@@ -347,21 +382,6 @@ const App: React.FC = () => {
                 onClick={() => authenticateWithLichess(updateAuthStatus)}
               >
                 Authorize with Lichess
-              </button>
-              <button
-                className="Submit-Button"
-                onClick={() =>
-                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                  submitGuess(currentGuess!, gameId).then((res) => {
-                    const { guess_correct: correct } = res;
-                    setHistory([...history, correct ? 1 : 0]);
-                    setCurrentGuess(null);
-                    fetchGame();
-                  })
-                }
-                disabled={currentGuess === null}
-              >
-                Submit
               </button>
             </div>
           </div>
@@ -399,7 +419,7 @@ const App: React.FC = () => {
               </div>
             </div>
             <div className="Button-Group">
-              <button onClick={changeOrientation}>&#8635;</button>
+              <button onClick={changeOrientation}>{FlipIcon}</button>
               <button onClick={getFirst} disabled={!hasPrevious}>
                 &#8249;&#8249;&#8249;
               </button>

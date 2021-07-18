@@ -13,6 +13,15 @@ type ApiAuthResult = AuthStatus & {
   token: string;
 };
 
+export type EventType =
+  | "FIRST_PLY"
+  | "LAST_PLY"
+  | "PREV_PLY"
+  | "NEXT_PLY"
+  | "BOARD_FLIP"
+  | "SELECT_PLY"
+  | "GUESS_CHANGE";
+
 const buildUrl = (path: string) => process.env.REACT_APP_API_BASE_URL + path;
 
 export const getAuthHeader = (): string => `Bearer ${getEncodedAccessToken()}`;
@@ -132,4 +141,29 @@ export const submitGuess = async (guess: string, gameId: string) => {
 
   const json = await res.json();
   return json;
+};
+
+export const postEvent = async (
+  gameId: string,
+  eventNumber: number,
+  eventType: EventType,
+  boardFlipped: boolean,
+  ply: number,
+  eventPayload: any
+) => {
+  const res = await fetch(buildUrl("turing/log_game_event"), {
+    headers: getDefaultHeaders(),
+    method: "POST",
+    body: JSON.stringify({
+      game_id: gameId,
+      event_number: eventNumber,
+      timestamp: Date.now(),
+      event_type: eventType,
+      board_flipped: boardFlipped,
+      ply,
+      data: eventPayload,
+    }),
+  });
+  const json = await res.json();
+  console.log(json);
 };

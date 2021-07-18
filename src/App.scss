@@ -77,26 +77,11 @@ $screen-md-min: 800px;
 }
 
 .Stats-Container {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.Stat-Row {
-  color: $highest-contrast;
-  display: flex;
-
-  h5 {
-    margin: 0px;
-  }
-
-  span {
-    color: $highest-contrast;
-    width: 55px;
-    display: inline-block;
-    text-align: center;
-    justify-content: center;
-  }
+  @extend .Bordered;
+  @extend .Shadowed;
+  background-color: rgba($low-contrast, 0.3);
+  position: relative;
+  width: 200px;
 }
 
 .Correct-Count {
