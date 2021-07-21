@@ -3,6 +3,19 @@ import { getEncodedAccessToken } from "./jwt";
 
 type UpdateAuthStatus = (arg0?: Partial<ApiAuthResult>) => void;
 
+export interface GuessResult {
+  blackIsBot: boolean;
+  blackName: string;
+  blackRating: number;
+  whiteIsBot: boolean;
+  whiteName: string;
+  whiteRating: number;
+  gameId: string;
+  gameType: string;
+  guessCorrect: boolean;
+  timeControl: string;
+}
+
 interface AuthStatus {
   id: string | null;
   lichessUsername?: string | null;

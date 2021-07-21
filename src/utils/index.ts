@@ -38,3 +38,6 @@ export const useViewport = () => {
 
   return width;
 };
+
+export const buildLichessGameUrl = (gameId: string) =>
+  `https://lichess.org/${gameId}`;

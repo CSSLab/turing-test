@@ -126,6 +126,25 @@ $screen-md-min: 800px;
   }
 }
 
+.Guess-Modal-Content {
+  @extend .Modal-Content;
+  width: 40%;
+  height: 30%;
+  margin-top: 200px;
+}
+
+.Row {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+}
+
+.Col {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
 .Bordered {
   border-radius: 2px;
   margin: 2px;

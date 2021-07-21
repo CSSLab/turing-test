@@ -97,7 +97,8 @@ const useGame = (): any => {
     {
       fen,
       lastMove: [...(lastMove ?? [])],
-      check,
+      // eslint-disable-next-line no-nested-ternary
+      check: check ? (selectedIndex % 2 === 0 ? "white" : "black") : false,
       orientation,
       hasPrevious,
       hasNext,

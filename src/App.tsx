@@ -4,11 +4,12 @@ import React, { useEffect, useState } from "react";
 
 import Chessground from "@react-chess/chessground";
 import logo from "./logo.svg";
-import { useViewport } from "./utils";
+import { buildLichessGameUrl, useViewport } from "./utils";
 import {
   authenticate,
   authenticateWithLichess,
   getGame,
+  GuessResult,
   login,
   submitGuess,
   useAuthStatus,
@@ -19,6 +20,17 @@ import useGame from "./hooks";
 
 const Icon = (
   <svg viewBox="-4 -2 54 54" xmlns="http://www.w3.org/2000/svg" width={37}>
+    <path
+      fill="white"
+      stroke="white"
+      strokeLinejoin="round"
+      d="M38.956.5c-3.53.418-6.452.902-9.286 2.984C5.534 1.786-.692 18.533.68 29.364 3.493 50.214 31.918 55.785 41.329 41.7c-7.444 7.696-19.276 8.752-28.323 3.084C3.959 39.116-.506 27.392 4.683 17.567 9.873 7.742 18.996 4.535 29.03 6.405c2.43-1.418 5.225-3.22 7.655-3.187l-1.694 4.86 12.752 21.37c-.439 5.654-5.459 6.112-5.459 6.112-.574-1.47-1.634-2.942-4.842-6.036-3.207-3.094-17.465-10.177-15.788-16.207-2.001 6.967 10.311 14.152 14.04 17.663 3.73 3.51 5.426 6.04 5.795 6.756 0 0 9.392-2.504 7.838-8.927L37.4 7.171z"
+    />
+  </svg>
+);
+
+const SmallIcon = (
+  <svg viewBox="-4 -2 54 54" xmlns="http://www.w3.org/2000/svg" width={20}>
     <path
       fill="white"
       stroke="white"
@@ -100,6 +112,8 @@ const App: React.FC = () => {
     [logEvent],
   ] = useGame();
 
+  const [guessResult, setGuessResult] = useState<GuessResult | null>(null);
+
   const width = useViewport();
 
   const [history, setHistory] = useState<number[]>([]);
@@ -172,6 +186,55 @@ const App: React.FC = () => {
           }}
         >
           Continue as Guest
+        </button>
+      </div>
+    </div>
+  );
+
+  const GuessResultModal = () => (
+    <div className="Modal">
+      <div className="Guess-Modal-Content">
+        <h2>
+          {guessResult?.timeControl} &middot;{" "}
+          {guessResult?.gameType.toUpperCase()}
+        </h2>
+        <div className="Row">
+          <div className="Col">
+            <h2 style={{ margin: 3 }}>White: {guessResult?.whiteName}</h2>
+            <h2 style={{ margin: 3 }}>
+              <span>{guessResult?.whiteRating}</span>
+            </h2>
+          </div>
+          <div className="Col">
+            <h2 style={{ margin: 3 }}>Black: {guessResult?.blackName}</h2>
+            <h2 style={{ margin: 3 }}>
+              <span>{guessResult?.blackRating}</span>
+            </h2>
+          </div>
+        </div>
+        <h2 style={{ margin: 3, marginTop: 20 }}>
+          Checkmate, White is victorious
+        </h2>
+        <h3 style={{ margin: 5, marginBottom: 20 }}>
+          Your guess was{" "}
+          <span>{guessResult!.guessCorrect ? "Correct" : "Incorrect"}</span>
+        </h3>
+        <button
+          className="Auth-Button"
+          onClick={() =>
+            window.open(buildLichessGameUrl(guessResult!.gameId!), "_blank")
+          }
+        >
+          View on Lichess {Icon}
+        </button>
+        <button
+          className="Auth-Button-Muted"
+          onClick={() => {
+            setGuessResult(null);
+            fetchGame();
+          }}
+        >
+          Continue
         </button>
       </div>
     </div>
@@ -312,47 +375,126 @@ const App: React.FC = () => {
         <div className="Container">
           <div className="Submission-Container">
             <div className="Guess-Group">
-              Pick the AI:
-              <div
-                className={`Guess-Container${
-                  currentGuess === "black" ? "-Selected" : ""
-                }`}
-                onClick={() => {
-                  setCurrentGuess("black");
-                  if (currentGuess !== null)
-                    logEvent("GUESS_CHANGE", { currentGuess: "black" });
-                }}
-              >
-                <h5 style={{ margin: 7 }}>Black</h5>
-              </div>
-              <div
-                className={`Guess-Container${
-                  currentGuess === "white" ? "-Selected" : ""
-                }`}
-                onClick={() => {
-                  setCurrentGuess("white");
-                  if (currentGuess !== null)
-                    logEvent("GUESS_CHANGE", { currentGuess: "white" });
-                }}
-              >
-                <h5 style={{ margin: 7 }}>White</h5>
-              </div>
+              {guessResult ? (
+                <h4 style={{ margin: 5 }}>
+                  Guess{" "}
+                  {guessResult.guessCorrect ? (
+                    <span style={{ color: "#85e53e" }}>Correct</span>
+                  ) : (
+                    <span style={{ color: "#c33" }}>Incorrect</span>
+                  )}
+                </h4>
+              ) : (
+                "Pick the AI:"
+              )}
+              {guessResult ? (
+                <div
+                  className="Col Stats-Container"
+                  style={{ textAlign: "left", maxWidth: 200 }}
+                >
+                  <h5 style={{ margin: 3, padding: 5, paddingBottom: 0 }}>
+                    {guessResult.timeControl} &middot; {guessResult.gameType}
+                  </h5>
+                  <h6 style={{ margin: 3, padding: 5, paddingBottom: 0 }}>
+                    &#9679; {guessResult.whiteName} (
+                    <span>{guessResult.whiteRating}</span>){" "}
+                    {guessResult.whiteIsBot && <>&#129302;</>}
+                  </h6>
+                  <h6 style={{ margin: 3, padding: 5, paddingTop: 0 }}>
+                    &#9675; {guessResult.blackName} (
+                    <span>{guessResult.blackRating}</span>){" "}
+                    {guessResult.blackIsBot && <>&#129302;</>}
+                  </h6>
+                </div>
+              ) : (
+                <>
+                  <div
+                    className={`Guess-Container${
+                      currentGuess === "black" ? "-Selected" : ""
+                    }`}
+                    onClick={() => {
+                      setCurrentGuess("black");
+                      if (currentGuess !== null)
+                        logEvent("GUESS_CHANGE", { currentGuess: "black" });
+                    }}
+                  >
+                    <h5 style={{ margin: 7 }}>Black</h5>
+                  </div>
+                  <div
+                    className={`Guess-Container${
+                      currentGuess === "white" ? "-Selected" : ""
+                    }`}
+                    onClick={() => {
+                      setCurrentGuess("white");
+                      if (currentGuess !== null)
+                        logEvent("GUESS_CHANGE", { currentGuess: "white" });
+                    }}
+                  >
+                    <h5 style={{ margin: 7 }}>White</h5>
+                  </div>
+                </>
+              )}
             </div>
             <button
               className="Submit-Button"
               onClick={() =>
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                submitGuess(currentGuess!, gameId).then((res) => {
-                  const { guess_correct: correct } = res;
-                  setHistory([...history, correct ? 1 : 0]);
-                  setCurrentGuess(null);
-                  fetchGame();
-                })
+                {
+                  if (guessResult) {
+                    setGuessResult(null);
+                    fetchGame();
+                  } else {
+                    submitGuess(currentGuess!, gameId).then((res) => {
+                      const {
+                        guess_correct: correct,
+                        black_is_bot: blackIsBot,
+                        black_name: blackName,
+                        black_rating: blackRating,
+                        white_is_bot: whiteIsBot,
+                        white_name: whiteName,
+                        white_rating: whiteRating,
+                        game_id: guessGameId,
+                        game_type: gameType,
+                        time_control: timeControl,
+                      } = res;
+                      setGuessResult({
+                        blackIsBot,
+                        blackName,
+                        blackRating,
+                        whiteIsBot,
+                        whiteName,
+                        whiteRating,
+                        gameId: guessGameId,
+                        gameType,
+                        guessCorrect: correct,
+                        timeControl,
+                      });
+                      setHistory([...history, correct ? 1 : 0]);
+                      setCurrentGuess(null);
+                    });
+                  }
+                }
               }
-              disabled={currentGuess === null}
+              disabled={!guessResult && currentGuess === null}
             >
-              <h2 style={{ margin: 4 }}>Submit</h2>
+              <h2 style={{ margin: 4 }}>
+                {guessResult ? "Continue" : "Submit"}
+              </h2>
             </button>
+            {guessResult && (
+              <button
+                className="Auth-Button"
+                style={{ width: 200, fontSize: 16, height: 20 }}
+                onClick={() =>
+                  window.open(
+                    buildLichessGameUrl(guessResult!.gameId!),
+                    "_blank"
+                  )
+                }
+              >
+                View on Lichess {SmallIcon}
+              </button>
+            )}
 
             <div
               style={{
@@ -436,9 +578,14 @@ const App: React.FC = () => {
           </div>
         </div>
         <div className="History-Container">
-          {history.slice(-10).map((v, i) => (
-            <span key={i} className={v ? "Correct" : "Incorrect"} />
-          ))}
+          {history
+            .slice(-10)
+            .map((v, i) => (
+              <span key={i} className={v ? "Correct" : "Incorrect"} />
+            ))
+            .concat([
+              guessResult ? <></> : <span key="last" className="Partial" />,
+            ])}
         </div>
       </div>
     </div>
