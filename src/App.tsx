@@ -170,7 +170,6 @@ const App: React.FC = () => {
     <div className="Modal">
       <div className="Modal-Content">
         <h2>Maia Turing Test</h2>
-        <h3>TESTING</h3>
         <p>Login with Lichess or use a guest account</p>
         <p>Try to guess which player is the computer</p>
         <button
